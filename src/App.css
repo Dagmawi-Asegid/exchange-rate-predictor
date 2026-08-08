@@ -1,0 +1,122 @@
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #0b0e14;
+  color: #e6e9f0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.app {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 40px 20px 60px;
+}
+
+header h1 {
+  font-size: 1.5rem;
+  margin: 0 0 4px;
+}
+
+.subtitle {
+  color: #8b93a7;
+  margin: 0 0 28px;
+  font-size: 0.92rem;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  background: #131722;
+  border: 1px solid #232838;
+  border-radius: 10px;
+  padding: 18px;
+  margin-bottom: 24px;
+}
+
+.controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: #8b93a7;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.controls select,
+.controls input {
+  background: #0b0e14;
+  border: 1px solid #232838;
+  color: #e6e9f0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 0.88rem;
+}
+
+.controls input {
+  width: 90px;
+}
+
+.error {
+  color: #ef5350;
+  font-size: 0.9rem;
+}
+
+.status {
+  color: #8b93a7;
+  font-size: 0.9rem;
+}
+
+.summary {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label {
+  color: #8b93a7;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.value {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.value.trend.upward {
+  color: #26a69a;
+}
+
+.value.trend.downward {
+  color: #ef5350;
+}
+
+.chart-wrap {
+  background: #131722;
+  border: 1px solid #232838;
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.disclaimer {
+  color: #8b93a7;
+  font-size: 0.8rem;
+  margin-top: 14px;
+}

@@ -13,7 +13,7 @@ import "./App.css";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
 
-const API_BASE = "http://localhost:5050";
+const API_BASE = import.meta.env.DEV ? "http://localhost:5050" : "";
 
 function App() {
   const [currencies, setCurrencies] = useState({});

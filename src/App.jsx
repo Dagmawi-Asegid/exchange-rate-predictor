@@ -11,6 +11,7 @@ import {
 } from "chart.js";
 import { Line } from "react-chartjs-2";
 import MarketScene from "./MarketScene";
+import CurrencyCombobox from "./CurrencyCombobox";
 import "./App.css";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
@@ -118,7 +119,6 @@ function App() {
     return `${result.base}/${result.target}  ${latest.toFixed(4)}  ${meta.arrow}  ${pct > 0 ? "+" : ""}${pct}% over ${forecastDays}d  →  forecast ${forecastRate.toFixed(4)}  ·  volatility: ${result.volatility.label}`;
   }, [result, forecastDays]);
 
-  const currencyOptions = Object.entries(currencies);
   const trendMeta = result ? TREND_META[result.trend] : null;
 
   return (
@@ -150,25 +150,11 @@ function App() {
         </div>
 
         <div className="controls">
-          <label>
-            From
-            <select value={base} onChange={(e) => setBase(e.target.value)}>
-              {currencyOptions.map(([code, name]) => (
-                <option key={code} value={code}>{code} — {name}</option>
-              ))}
-            </select>
-          </label>
+          <CurrencyCombobox id="fromCurrency" label="From" currencies={currencies} value={base} onChange={setBase} />
           <button type="button" className="swap-btn" onClick={swapCurrencies} aria-label="Swap currencies" title="Swap currencies">
             ⇄
           </button>
-          <label>
-            To
-            <select value={target} onChange={(e) => setTarget(e.target.value)}>
-              {currencyOptions.map(([code, name]) => (
-                <option key={code} value={code}>{code} — {name}</option>
-              ))}
-            </select>
-          </label>
+          <CurrencyCombobox id="toCurrency" label="To" currencies={currencies} value={target} onChange={setTarget} />
           <label className="slider-label">
             History: {days}d
             <input type="range" min="7" max="180" value={days} onChange={(e) => setDays(Number(e.target.value))} />

@@ -88,7 +88,6 @@ header h1 {
   letter-spacing: 0.03em;
 }
 
-.controls select,
 .controls input[type="number"] {
   background: #0b0e14;
   border: 1px solid #232838;
@@ -96,6 +95,91 @@ header h1 {
   padding: 8px 10px;
   border-radius: 6px;
   font-size: 0.88rem;
+}
+
+.currency-combobox {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 220px;
+}
+
+.field-label {
+  font-size: 0.78rem;
+  color: #8b93a7;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.currency-input {
+  background: #0b0e14;
+  border: 1px solid #232838;
+  color: #e6e9f0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  width: 100%;
+}
+.currency-input:focus {
+  outline: none;
+  border-color: #4f7cff;
+}
+.currency-input::placeholder {
+  color: #e6e9f0;
+  opacity: 1;
+}
+
+.currency-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #0f1420;
+  border: 1px solid #232838;
+  border-radius: 10px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+  z-index: 30;
+  animation: pop-in 0.12s ease;
+}
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.currency-option {
+  padding: 8px 10px;
+  border-radius: 7px;
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 0.85rem;
+}
+.currency-option:hover,
+.currency-option.active {
+  background: rgba(79, 124, 255, 0.14);
+}
+.currency-option.selected .currency-code {
+  color: #4f7cff;
+}
+.currency-code {
+  font-weight: 700;
+  color: #e6e9f0;
+  min-width: 34px;
+}
+.currency-name {
+  color: #8b93a7;
+}
+.currency-empty {
+  padding: 10px;
+  color: #8b93a7;
+  font-size: 0.85rem;
 }
 
 .slider-label {

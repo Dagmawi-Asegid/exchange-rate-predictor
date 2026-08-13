@@ -25,7 +25,9 @@ const PRESET_PAIRS = [
   { base: "GBP", target: "USD" },
   { base: "EUR", target: "GBP" },
   { base: "USD", target: "MXN" },
-  { base: "USD", target: "CNY" },
+  { base: "USD", target: "NGN" },
+  { base: "USD", target: "ETB" },
+  { base: "USD", target: "EGP" },
 ];
 
 const TREND_META = {
@@ -126,8 +128,8 @@ function App() {
         <header>
           <h1>Exchange Rate Predictor</h1>
           <p className="subtitle">
-            Live FX history, a simple trend forecast, and plain-language takeaways for policymakers,
-            trade businesses, and individuals.
+            Live FX history across 150+ currencies, a simple trend forecast, and plain-language
+            takeaways for policymakers, trade businesses, and individuals.
           </p>
         </header>
 
@@ -241,11 +243,13 @@ function App() {
                   </button>
                 ))}
               </div>
-              <div className="insights-panel">
+              <div className="insights-panel" key={`${activeTab}-${result.base}-${result.target}-${result.trend}`}>
                 <h3>{result.insights[activeTab].stance}</h3>
                 <ul>
                   {result.insights[activeTab].points.map((point, i) => (
-                    <li key={i}>{point}</li>
+                    <li key={i} style={{ animationDelay: `${0.16 + i * 0.08}s` }}>
+                      {point}
+                    </li>
                   ))}
                 </ul>
               </div>

@@ -1,4 +1,5 @@
 import statistics
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, timedelta
 
 import requests
@@ -9,12 +10,81 @@ app = Flask(__name__)
 CORS(app)
 
 FRANKFURTER_BASE = "https://api.frankfurter.dev/v1"
+CURRENCY_API_BASE = "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api"
 
 TREND_THRESHOLD_PCT = 0.15
 VOLATILITY_THRESHOLDS_PCT = (0.25, 0.6)
+FALLBACK_MAX_DAYS = 90
+FALLBACK_MAX_WORKERS = 20
+
+# Frankfurter (ECB reference rates) only covers ~30 major currencies. For
+# everything else we fall back to a broader, free, no-key community dataset
+# (see fetch_history_fallback) so effectively every ISO 4217 currency in
+# active use is searchable, not just majors.
+FRANKFURTER_CURRENCIES = {
+    "AUD", "BRL", "CAD", "CHF", "CNY", "CZK", "DKK", "EUR", "GBP", "HKD",
+    "HUF", "IDR", "ILS", "INR", "ISK", "JPY", "KRW", "MXN", "MYR", "NOK",
+    "NZD", "PHP", "PLN", "RON", "SEK", "SGD", "THB", "TRY", "USD", "ZAR",
+}
+
+CURRENCY_NAMES = {
+    "AED": "UAE Dirham", "AFN": "Afghan Afghani", "ALL": "Albanian Lek",
+    "AMD": "Armenian Dram", "ANG": "Netherlands Antillean Guilder",
+    "AOA": "Angolan Kwanza", "ARS": "Argentine Peso", "AUD": "Australian Dollar",
+    "AWG": "Aruban Florin", "AZN": "Azerbaijani Manat",
+    "BAM": "Bosnia-Herzegovina Convertible Mark", "BBD": "Barbadian Dollar",
+    "BDT": "Bangladeshi Taka", "BGN": "Bulgarian Lev", "BHD": "Bahraini Dinar",
+    "BIF": "Burundian Franc", "BMD": "Bermudian Dollar", "BND": "Brunei Dollar",
+    "BOB": "Bolivian Boliviano", "BRL": "Brazilian Real", "BSD": "Bahamian Dollar",
+    "BTN": "Bhutanese Ngultrum", "BWP": "Botswana Pula", "BYN": "Belarusian Ruble",
+    "BZD": "Belize Dollar", "CAD": "Canadian Dollar", "CDF": "Congolese Franc",
+    "CHF": "Swiss Franc", "CLP": "Chilean Peso", "CNY": "Chinese Yuan",
+    "COP": "Colombian Peso", "CRC": "Costa Rican Colon", "CUP": "Cuban Peso",
+    "CVE": "Cape Verdean Escudo", "CZK": "Czech Koruna", "DJF": "Djiboutian Franc",
+    "DKK": "Danish Krone", "DOP": "Dominican Peso", "DZD": "Algerian Dinar",
+    "EGP": "Egyptian Pound", "ERN": "Eritrean Nakfa", "ETB": "Ethiopian Birr",
+    "EUR": "Euro", "FJD": "Fijian Dollar", "FKP": "Falkland Islands Pound",
+    "GBP": "British Pound", "GEL": "Georgian Lari", "GHS": "Ghanaian Cedi",
+    "GIP": "Gibraltar Pound", "GMD": "Gambian Dalasi", "GNF": "Guinean Franc",
+    "GTQ": "Guatemalan Quetzal", "GYD": "Guyanaese Dollar", "HKD": "Hong Kong Dollar",
+    "HNL": "Honduran Lempira", "HTG": "Haitian Gourde", "HUF": "Hungarian Forint",
+    "IDR": "Indonesian Rupiah", "ILS": "Israeli New Shekel", "INR": "Indian Rupee",
+    "IQD": "Iraqi Dinar", "IRR": "Iranian Rial", "ISK": "Icelandic Krona",
+    "JMD": "Jamaican Dollar", "JOD": "Jordanian Dinar", "JPY": "Japanese Yen",
+    "KES": "Kenyan Shilling", "KGS": "Kyrgystani Som", "KHR": "Cambodian Riel",
+    "KMF": "Comorian Franc", "KRW": "South Korean Won", "KWD": "Kuwaiti Dinar",
+    "KYD": "Cayman Islands Dollar", "KZT": "Kazakhstani Tenge", "LAK": "Laotian Kip",
+    "LBP": "Lebanese Pound", "LKR": "Sri Lankan Rupee", "LRD": "Liberian Dollar",
+    "LSL": "Lesotho Loti", "LYD": "Libyan Dinar", "MAD": "Moroccan Dirham",
+    "MDL": "Moldovan Leu", "MGA": "Malagasy Ariary", "MKD": "Macedonian Denar",
+    "MMK": "Myanma Kyat", "MNT": "Mongolian Tugrik", "MOP": "Macanese Pataca",
+    "MRU": "Mauritanian Ouguiya", "MUR": "Mauritian Rupee", "MVR": "Maldivian Rufiyaa",
+    "MWK": "Malawian Kwacha", "MXN": "Mexican Peso", "MYR": "Malaysian Ringgit",
+    "MZN": "Mozambican Metical", "NAD": "Namibian Dollar", "NGN": "Nigerian Naira",
+    "NIO": "Nicaraguan Cordoba", "NOK": "Norwegian Krone", "NPR": "Nepalese Rupee",
+    "NZD": "New Zealand Dollar", "OMR": "Omani Rial", "PAB": "Panamanian Balboa",
+    "PEN": "Peruvian Sol", "PGK": "Papua New Guinean Kina", "PHP": "Philippine Peso",
+    "PKR": "Pakistani Rupee", "PLN": "Polish Zloty", "PYG": "Paraguayan Guarani",
+    "QAR": "Qatari Rial", "RON": "Romanian Leu", "RSD": "Serbian Dinar",
+    "RUB": "Russian Ruble", "RWF": "Rwandan Franc", "SAR": "Saudi Riyal",
+    "SBD": "Solomon Islands Dollar", "SCR": "Seychellois Rupee", "SDG": "Sudanese Pound",
+    "SEK": "Swedish Krona", "SGD": "Singapore Dollar", "SHP": "Saint Helena Pound",
+    "SLE": "Sierra Leonean Leone", "SOS": "Somali Shilling", "SRD": "Surinamese Dollar",
+    "SSP": "South Sudanese Pound", "STN": "Sao Tome and Principe Dobra",
+    "SZL": "Swazi Lilangeni", "THB": "Thai Baht", "TJS": "Tajikistani Somoni",
+    "TMT": "Turkmenistani Manat", "TND": "Tunisian Dinar", "TOP": "Tongan Paanga",
+    "TRY": "Turkish Lira", "TTD": "Trinidad and Tobago Dollar", "TWD": "New Taiwan Dollar",
+    "TZS": "Tanzanian Shilling", "UAH": "Ukrainian Hryvnia", "UGX": "Ugandan Shilling",
+    "USD": "US Dollar", "UYU": "Uruguayan Peso", "UZS": "Uzbekistani Som",
+    "VES": "Venezuelan Bolivar", "VND": "Vietnamese Dong", "VUV": "Vanuatu Vatu",
+    "WST": "Samoan Tala", "XAF": "Central African CFA Franc",
+    "XCD": "East Caribbean Dollar", "XOF": "West African CFA Franc",
+    "XPF": "CFP Franc", "YER": "Yemeni Rial", "ZAR": "South African Rand",
+    "ZMW": "Zambian Kwacha", "ZWL": "Zimbabwean Dollar",
+}
 
 
-def fetch_history(base: str, target: str, days: int):
+def fetch_history_frankfurter(base: str, target: str, days: int):
     end = date.today()
     start = end - timedelta(days=days)
     resp = requests.get(
@@ -26,6 +96,48 @@ def fetch_history(base: str, target: str, days: int):
     data = resp.json()
     series = sorted(data["rates"].items())
     return [{"date": d, "rate": rates[target]} for d, rates in series]
+
+
+def _fetch_fallback_day(base_lower: str, target_lower: str, day: date):
+    url = f"{CURRENCY_API_BASE}@{day.isoformat()}/v1/currencies/{base_lower}.json"
+    try:
+        resp = requests.get(url, timeout=6)
+        if resp.status_code != 200:
+            return None
+        rate = resp.json().get(base_lower, {}).get(target_lower)
+    except requests.RequestException:
+        return None
+    return {"date": day.isoformat(), "rate": rate} if rate is not None else None
+
+
+def fetch_history_fallback(base: str, target: str, days: int):
+    """Broader-coverage historical source for currencies outside Frankfurter's ~30.
+
+    This community dataset publishes one JSON snapshot per calendar day rather
+    than a range endpoint, so history is assembled from parallel per-day
+    fetches (capped at FALLBACK_MAX_DAYS to keep total latency reasonable).
+    """
+    days = min(days, FALLBACK_MAX_DAYS)
+    end = date.today()
+    start = end - timedelta(days=days)
+    all_days = [start + timedelta(days=i) for i in range((end - start).days + 1)]
+    base_lower, target_lower = base.lower(), target.lower()
+
+    points = {}
+    with ThreadPoolExecutor(max_workers=FALLBACK_MAX_WORKERS) as executor:
+        futures = [executor.submit(_fetch_fallback_day, base_lower, target_lower, d) for d in all_days]
+        for future in as_completed(futures):
+            point = future.result()
+            if point:
+                points[point["date"]] = point
+
+    return [points[d] for d in sorted(points)]
+
+
+def fetch_history(base: str, target: str, days: int):
+    if base in FRANKFURTER_CURRENCIES and target in FRANKFURTER_CURRENCIES:
+        return fetch_history_frankfurter(base, target, days)
+    return fetch_history_fallback(base, target, days)
 
 
 def linear_regression_forecast(series, forecast_days: int):
@@ -194,9 +306,7 @@ def build_insights(base: str, target: str, trend: str, volatility_label: str):
 
 @app.get("/api/currencies")
 def currencies():
-    resp = requests.get(f"{FRANKFURTER_BASE}/currencies", timeout=10)
-    resp.raise_for_status()
-    return jsonify(resp.json())
+    return jsonify(CURRENCY_NAMES)
 
 
 @app.get("/api/predict")

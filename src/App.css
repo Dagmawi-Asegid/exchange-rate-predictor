@@ -441,3 +441,16 @@ header h1 {
     align-self: center;
   }
 }
+
+.app-footer {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid #2a3145;
+  color: #8b93a7;
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.app-footer a {
+  color: #9aa3b8;
+}

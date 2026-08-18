@@ -243,6 +243,16 @@ function App() {
             </section>
           </>
         )}
+
+        <footer className="app-footer">
+          <p>
+            Rates from the{" "}
+            <a href="https://frankfurter.dev/" target="_blank" rel="noreferrer">
+              Frankfurter API
+            </a>
+            . Forecasts are a simple trend line, not financial advice.
+          </p>
+        </footer>
       </div>
     </>
   );
